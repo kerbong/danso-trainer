@@ -1,0 +1,1115 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>단소 연주 학습 도우미</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+            font-size: 2.5rem;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+
+        #videoContainer {
+            position: relative;
+            width: 100%;
+            aspect-ratio: 4/3;
+            background: #000;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        #webcam {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        button {
+            flex: 1;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button.primary {
+            background: #667eea;
+            color: white;
+        }
+
+        button.primary:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102,126,234,0.4);
+        }
+
+        button.secondary {
+            background: #48bb78;
+            color: white;
+        }
+
+        button.secondary:hover {
+            background: #38a169;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(72,187,120,0.4);
+        }
+
+        button.danger {
+            background: #f56565;
+            color: white;
+        }
+
+        button.danger:hover {
+            background: #e53e3e;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(245,101,101,0.4);
+        }
+
+        button:disabled {
+            background: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        button.hidden {
+            display: none;
+        }
+
+        .feedback-section {
+            margin-top: 20px;
+        }
+
+        .feedback-item {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            border-left: 4px solid #cbd5e0;
+        }
+
+        .feedback-item.good {
+            border-left-color: #48bb78;
+            background: #f0fff4;
+        }
+
+        .feedback-item.warning {
+            border-left-color: #ed8936;
+            background: #fffaf0;
+        }
+
+        .feedback-item.error {
+            border-left-color: #f56565;
+            background: #fff5f5;
+        }
+
+        .feedback-item h3 {
+            color: #2d3748;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        .feedback-item p {
+            color: #4a5568;
+            font-size: 0.95rem;
+        }
+
+        #audioVisualization {
+            width: 100%;
+            height: 150px;
+            background: #000;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-indicator.active {
+            background: #48bb78;
+            box-shadow: 0 0 10px #48bb78;
+        }
+
+        .status-indicator.inactive {
+            background: #cbd5e0;
+        }
+
+        .instructions {
+            grid-column: 1 / -1;
+        }
+
+        .instruction-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .instruction-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+
+        .instruction-card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .instruction-card p {
+            font-size: 0.95rem;
+            line-height: 1.5;
+        }
+
+        .step-card {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border-left: 6px solid #667eea;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            transition: all 0.3s ease;
+        }
+
+        .step-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.15);
+        }
+
+        .step-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .step-number {
+            width: 50px;
+            height: 50px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: bold;
+            margin-right: 15px;
+            flex-shrink: 0;
+        }
+
+        .step-title {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #2d3748;
+        }
+
+        .step-description {
+            color: #4a5568;
+            line-height: 1.8;
+            font-size: 1rem;
+            margin-bottom: 15px;
+        }
+
+        .step-tips {
+            background: #f7fafc;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 3px solid #48bb78;
+        }
+
+        .step-tips h4 {
+            color: #48bb78;
+            font-size: 1rem;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        .step-tips ul {
+            margin-left: 20px;
+            color: #4a5568;
+            line-height: 1.6;
+        }
+
+        .step-tips li {
+            margin-bottom: 5px;
+        }
+
+        .pitch-display {
+            font-size: 2rem;
+            font-weight: bold;
+            text-align: center;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 10px;
+            margin-top: 15px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .video-links {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .video-link-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .video-link-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(102,126,234,0.4);
+        }
+
+        .video-link-card a {
+            color: white;
+            text-decoration: none;
+            display: block;
+        }
+
+        .video-link-card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+        }
+
+        .video-link-card p {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            margin-bottom: 15px;
+        }
+
+        .video-link-card .btn {
+            background: white;
+            color: #667eea;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            display: inline-block;
+            transition: all 0.3s ease;
+        }
+
+        .video-link-card .btn:hover {
+            background: #f7fafc;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 단소 연주 학습 도우미</h1>
+
+        <div class="main-grid">
+            <!-- 웹캠 섹션 -->
+            <div class="card">
+                <h2>
+                    <span class="status-indicator" id="cameraStatus"></span>
+                    실시간 입술 모양 분석
+                </h2>
+                <div id="videoContainer">
+                    <video id="webcam" autoplay playsinline></video>
+                    <canvas id="canvas"></canvas>
+                </div>
+                <div class="controls">
+                    <button class="primary" id="startCamera">카메라 시작</button>
+                    <button class="danger hidden" id="stopCamera">카메라 중지</button>
+                </div>
+                <div id="lipFeedback" class="feedback-section"></div>
+            </div>
+
+            <!-- 오디오 분석 섹션 -->
+            <div class="card">
+                <h2>
+                    <span class="status-indicator" id="micStatus"></span>
+                    소리 분석
+                </h2>
+                <canvas id="audioVisualization"></canvas>
+                <div class="pitch-display" id="pitchDisplay">
+                    음높이: --
+                </div>
+                <div class="controls">
+                    <button class="secondary" id="startAudio">마이크 시작</button>
+                    <button class="danger hidden" id="stopAudio">마이크 중지</button>
+                </div>
+                <div id="audioFeedback" class="feedback-section"></div>
+            </div>
+
+            <!-- 단계별 학습 가이드 -->
+            <div class="card instructions">
+                <h2>📚 단소 연주 4단계 학습 가이드</h2>
+
+                <div class="step-card">
+                    <div class="step-header">
+                        <div class="step-number">1</div>
+                        <div class="step-title">입술 일자로 만들어 바람내기</div>
+                    </div>
+                    <p class="step-description">
+                        단소 없이 먼저 입술로만 바람을 만드는 연습을 합니다.
+                        입술을 "휘" 발음하듯이 양쪽으로 넓게 펴고, 입 중앙에 작은 구멍을 만들어 바람을 내보냅니다.
+                    </p>
+                    <div class="step-tips">
+                        <h4>💡 핵심 포인트</h4>
+                        <ul>
+                            <li>입술을 좌우로 넓게 펴서 일자로 만들기</li>
+                            <li>입꼬리에 힘을 주어 공기가 새지 않도록 하기</li>
+                            <li>입 중앙에서 나오는 바람 구멍이 한 손가락으로 막힐 정도로 작게 만들기</li>
+                            <li>부드럽게 "후~" 소리내며 바람 불어보기</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-header">
+                        <div class="step-number">2</div>
+                        <div class="step-title">바람구멍 위치 확인하기</div>
+                    </div>
+                    <p class="step-description">
+                        거울을 보면서 자신의 바람 구멍이 정확히 어디에 위치하는지 확인합니다.
+                        손가락으로 입술 중앙을 가볍게 대보며 바람이 나오는 위치를 파악하세요.
+                    </p>
+                    <div class="step-tips">
+                        <h4>💡 핵심 포인트</h4>
+                        <ul>
+                            <li>거울을 정면으로 보고 입술 모양 관찰하기</li>
+                            <li>손가락을 입술 중앙에 대고 바람이 닿는 위치 확인하기</li>
+                            <li>바람 구멍이 정확히 입술 중앙에 위치하는지 체크하기</li>
+                            <li>카메라를 켜고 위 화면에서 실시간으로 입술 모양 확인하기</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-header">
+                        <div class="step-number">3</div>
+                        <div class="step-title">단소 입술에 대기</div>
+                    </div>
+                    <p class="step-description">
+                        이제 단소를 아랫입술 끝에 가볍게 댑니다.
+                        단소의 취구(불구멍)가 2단계에서 확인한 바람 구멍 위치와 일치하는지 확인하세요.
+                    </p>
+                    <div class="step-tips">
+                        <h4>💡 핵심 포인트</h4>
+                        <ul>
+                            <li>단소를 아랫입술의 끝 부분에 살짝 걸치듯이 대기</li>
+                            <li>단소의 취구(불구멍)가 입술 중앙, 바람 구멍과 일직선인지 확인하기</li>
+                            <li>너무 세게 누르지 말고 가볍게 대기</li>
+                            <li>단소를 수평으로 유지하며 몸에서 약간 앞쪽으로 기울이기 (약 30~45도)</li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="step-card">
+                    <div class="step-header">
+                        <div class="step-number">4</div>
+                        <div class="step-title">소리내보기</div>
+                    </div>
+                    <p class="step-description">
+                        단소를 상하좌우로 천천히 움직이면서 소리가 나는 최적의 위치를 찾습니다.
+                        공기가 취구를 통해 절반은 안으로, 절반은 밖으로 나가도록 각도를 조절하세요.
+                    </p>
+                    <div class="step-tips">
+                        <h4>💡 핵심 포인트</h4>
+                        <ul>
+                            <li>단소를 위아래로 1~2mm씩 천천히 움직이며 소리 나는 지점 찾기</li>
+                            <li>좌우로도 미세하게 조정하며 가장 맑은 소리가 나는 위치 찾기</li>
+                            <li>공기 방향: 취구에 절반은 들어가고 절반은 밖으로 나가도록</li>
+                            <li>처음엔 "스~" 소리가 나다가, 각도가 맞으면 맑은 음이 나옵니다</li>
+                            <li>마이크를 켜서 소리 분석 기능으로 음높이 확인하기</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 참고 영상 -->
+            <div class="card instructions">
+                <h2>🎬 참고 영상</h2>
+                <div class="video-links">
+                    <div class="video-link-card">
+                        <a href="https://www.youtube.com/watch?v=4U_cOC6f66A" target="_blank">
+                            <h3>단소 연주법 기초</h3>
+                            <p>단소의 올바른 자세와 소리 내는 방법을 배울 수 있습니다.</p>
+                            <span class="btn">▶ 영상 보기</span>
+                        </a>
+                    </div>
+                    <div class="video-link-card">
+                        <a href="https://www.youtube.com/watch?v=lvy6FA-PyC0" target="_blank">
+                            <h3>단소 연주 가이드</h3>
+                            <p>단소 연주의 세부 기법과 팁을 확인하세요.</p>
+                            <span class="btn">▶ 영상 보기</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TensorFlow.js 및 FaceMesh 라이브러리 -->
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@1.0.2"></script>
+
+    <script>
+        // 전역 변수
+        let video, canvas, ctx, detector;
+        let audioContext, analyser, microphone, dataArray;
+        let animationId;
+        let isDetecting = false;
+        let isAnalyzing = false;
+        let videoStream = null;
+        let audioStream = null;
+
+        // 초기화
+        document.addEventListener('DOMContentLoaded', () => {
+            video = document.getElementById('webcam');
+            canvas = document.getElementById('canvas');
+            ctx = canvas.getContext('2d');
+
+            document.getElementById('startCamera').addEventListener('click', startCamera);
+            document.getElementById('stopCamera').addEventListener('click', stopCamera);
+            document.getElementById('startAudio').addEventListener('click', startAudio);
+            document.getElementById('stopAudio').addEventListener('click', stopAudio);
+        });
+
+        // 카메라 시작
+        async function startCamera() {
+            const startBtn = document.getElementById('startCamera');
+            const stopBtn = document.getElementById('stopCamera');
+            const statusIndicator = document.getElementById('cameraStatus');
+
+            try {
+                startBtn.disabled = true;
+                startBtn.textContent = '로딩 중...';
+
+                // 웹캠 스트림 가져오기
+                videoStream = await navigator.mediaDevices.getUserMedia({
+                    video: { width: 640, height: 480 }
+                });
+                video.srcObject = videoStream;
+
+                // 비디오 로드 대기
+                await new Promise((resolve) => {
+                    video.onloadedmetadata = () => {
+                        resolve();
+                    };
+                });
+
+                // 캔버스 크기 설정
+                canvas.width = video.videoWidth;
+                canvas.height = video.videoHeight;
+
+                // FaceMesh 모델 로드
+                statusIndicator.classList.remove('active');
+                startBtn.textContent = 'AI 모델 로딩 중...';
+
+                detector = await faceLandmarksDetection.createDetector(
+                    faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh,
+                    {
+                        runtime: 'tfjs',
+                        refineLandmarks: true,
+                        maxFaces: 1
+                    }
+                );
+
+                statusIndicator.classList.add('active');
+                startBtn.classList.add('hidden');
+                stopBtn.classList.remove('hidden');
+                isDetecting = true;
+
+                // 감지 시작
+                detectFace();
+
+            } catch (error) {
+                console.error('카메라 시작 오류:', error);
+                alert('카메라를 시작할 수 없습니다. 권한을 확인해주세요.');
+                startBtn.disabled = false;
+                startBtn.textContent = '카메라 시작';
+            }
+        }
+
+        // 카메라 중지
+        function stopCamera() {
+            const startBtn = document.getElementById('startCamera');
+            const stopBtn = document.getElementById('stopCamera');
+            const statusIndicator = document.getElementById('cameraStatus');
+
+            // 얼굴 감지 중지
+            isDetecting = false;
+            if (animationId) {
+                cancelAnimationFrame(animationId);
+            }
+
+            // 비디오 스트림 중지
+            if (videoStream) {
+                videoStream.getTracks().forEach(track => track.stop());
+                videoStream = null;
+            }
+
+            // 비디오 소스 제거
+            video.srcObject = null;
+
+            // 캔버스 초기화
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // UI 업데이트
+            statusIndicator.classList.remove('active');
+            startBtn.classList.remove('hidden');
+            startBtn.disabled = false;
+            startBtn.textContent = '카메라 시작';
+            stopBtn.classList.add('hidden');
+
+            // 피드백 초기화
+            document.getElementById('lipFeedback').innerHTML = '';
+        }
+
+        // 얼굴 감지 및 분석
+        async function detectFace() {
+            if (!isDetecting) return;
+
+            try {
+                const faces = await detector.estimateFaces(video);
+
+                // 캔버스 초기화
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                if (faces.length > 0) {
+                    const face = faces[0];
+                    const keypoints = face.keypoints;
+
+                    // 입술 관련 랜드마크 그리기
+                    drawLipLandmarks(keypoints);
+
+                    // 입술 분석
+                    analyzeLipShape(keypoints);
+                }
+
+            } catch (error) {
+                console.error('얼굴 감지 오류:', error);
+            }
+
+            animationId = requestAnimationFrame(detectFace);
+        }
+
+        // 입술 랜드마크 그리기
+        function drawLipLandmarks(keypoints) {
+            // 입술 외곽선 인덱스 (MediaPipe FaceMesh)
+            const upperLip = [61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291];
+            const lowerLip = [146, 91, 181, 84, 17, 314, 405, 321, 375, 291];
+            const lipCorners = [61, 291]; // 입꼬리
+
+            // 윗입술 그리기
+            ctx.strokeStyle = '#48bb78';
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            upperLip.forEach((idx, i) => {
+                const point = keypoints[idx];
+                if (i === 0) {
+                    ctx.moveTo(point.x, point.y);
+                } else {
+                    ctx.lineTo(point.x, point.y);
+                }
+            });
+            ctx.stroke();
+
+            // 아랫입술 그리기
+            ctx.strokeStyle = '#667eea';
+            ctx.beginPath();
+            lowerLip.forEach((idx, i) => {
+                const point = keypoints[idx];
+                if (i === 0) {
+                    ctx.moveTo(point.x, point.y);
+                } else {
+                    ctx.lineTo(point.x, point.y);
+                }
+            });
+            ctx.stroke();
+
+            // 입꼬리 강조
+            ctx.fillStyle = '#ed8936';
+            lipCorners.forEach(idx => {
+                const point = keypoints[idx];
+                ctx.beginPath();
+                ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+                ctx.fill();
+            });
+
+            // 입 중앙 표시
+            const center = keypoints[13]; // 입 중앙
+            ctx.fillStyle = '#f56565';
+            ctx.beginPath();
+            ctx.arc(center.x, center.y, 5, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        // 입술 모양 분석
+        function analyzeLipShape(keypoints) {
+            const feedback = document.getElementById('lipFeedback');
+            const feedbackItems = [];
+
+            // 입술 너비 계산
+            const leftCorner = keypoints[61];
+            const rightCorner = keypoints[291];
+            const lipWidth = Math.sqrt(
+                Math.pow(rightCorner.x - leftCorner.x, 2) +
+                Math.pow(rightCorner.y - leftCorner.y, 2)
+            );
+
+            // 입술 높이 계산
+            const upperLip = keypoints[0];
+            const lowerLip = keypoints[17];
+            const lipHeight = Math.sqrt(
+                Math.pow(lowerLip.x - upperLip.x, 2) +
+                Math.pow(lowerLip.y - upperLip.y, 2)
+            );
+
+            // 입술 종횡비
+            const aspectRatio = lipWidth / lipHeight;
+
+            // 입술 너비 피드백
+            if (aspectRatio > 4.0) {
+                feedbackItems.push({
+                    type: 'good',
+                    title: '✓ 입술 모양 좋음',
+                    text: '입술이 넓게 펴져 있습니다. 좋은 자세입니다!'
+                });
+            } else if (aspectRatio > 3.0) {
+                feedbackItems.push({
+                    type: 'warning',
+                    title: '⚠ 입술을 더 펴세요',
+                    text: '입술을 양옆으로 조금 더 넓게 펴보세요.'
+                });
+            } else {
+                feedbackItems.push({
+                    type: 'error',
+                    title: '✗ 입술이 좁습니다',
+                    text: '"휘" 발음하듯이 입술을 양옆으로 넓게 펴세요.'
+                });
+            }
+
+            // 입 벌림 정도 피드백
+            if (lipHeight < 15) {
+                feedbackItems.push({
+                    type: 'good',
+                    title: '✓ 입 벌림 적절',
+                    text: '입을 너무 벌리지 않고 있습니다.'
+                });
+            } else {
+                feedbackItems.push({
+                    type: 'warning',
+                    title: '⚠ 입을 조금 닫으세요',
+                    text: '입을 너무 벌리지 마세요. 살짝만 벌리면 됩니다.'
+                });
+            }
+
+            // 입꼬리 긴장도 확인 (각도 계산)
+            const leftY = leftCorner.y;
+            const rightY = rightCorner.y;
+            const yDiff = Math.abs(leftY - rightY);
+
+            if (yDiff < 5) {
+                feedbackItems.push({
+                    type: 'good',
+                    title: '✓ 입꼬리 수평',
+                    text: '입꼬리가 수평을 유지하고 있습니다.'
+                });
+            } else {
+                feedbackItems.push({
+                    type: 'warning',
+                    title: '⚠ 입꼬리 조정',
+                    text: '입꼬리를 수평으로 유지하세요.'
+                });
+            }
+
+            // 피드백 UI 업데이트
+            feedback.innerHTML = feedbackItems.map(item => `
+                <div class="feedback-item ${item.type}">
+                    <h3>${item.title}</h3>
+                    <p>${item.text}</p>
+                </div>
+            `).join('');
+        }
+
+        // 오디오 시작
+        async function startAudio() {
+            const startBtn = document.getElementById('startAudio');
+            const stopBtn = document.getElementById('stopAudio');
+            const statusIndicator = document.getElementById('micStatus');
+
+            try {
+                startBtn.disabled = true;
+                startBtn.textContent = '로딩 중...';
+
+                // 오디오 컨텍스트 생성
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048;
+
+                const bufferLength = analyser.frequencyBinCount;
+                dataArray = new Uint8Array(bufferLength);
+
+                // 마이크 스트림 가져오기
+                audioStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                microphone = audioContext.createMediaStreamSource(audioStream);
+                microphone.connect(analyser);
+
+                statusIndicator.classList.add('active');
+                startBtn.classList.add('hidden');
+                stopBtn.classList.remove('hidden');
+                isAnalyzing = true;
+
+                // 오디오 분석 시작
+                analyzeAudio();
+
+            } catch (error) {
+                console.error('마이크 시작 오류:', error);
+                alert('마이크를 시작할 수 없습니다. 권한을 확인해주세요.');
+                startBtn.disabled = false;
+                startBtn.textContent = '마이크 시작';
+            }
+        }
+
+        // 오디오 중지
+        function stopAudio() {
+            const startBtn = document.getElementById('startAudio');
+            const stopBtn = document.getElementById('stopAudio');
+            const statusIndicator = document.getElementById('micStatus');
+
+            // 오디오 분석 중지
+            isAnalyzing = false;
+
+            // 마이크 연결 해제
+            if (microphone) {
+                microphone.disconnect();
+                microphone = null;
+            }
+
+            // 오디오 스트림 중지
+            if (audioStream) {
+                audioStream.getTracks().forEach(track => track.stop());
+                audioStream = null;
+            }
+
+            // 오디오 컨텍스트 닫기
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+
+            // 시각화 캔버스 초기화
+            const visualCanvas = document.getElementById('audioVisualization');
+            const visualCtx = visualCanvas.getContext('2d');
+            visualCtx.fillStyle = 'rgb(0, 0, 0)';
+            visualCtx.fillRect(0, 0, visualCanvas.width, visualCanvas.height);
+
+            // UI 업데이트
+            statusIndicator.classList.remove('active');
+            startBtn.classList.remove('hidden');
+            startBtn.disabled = false;
+            startBtn.textContent = '마이크 시작';
+            stopBtn.classList.add('hidden');
+
+            // 피드백 초기화
+            document.getElementById('pitchDisplay').textContent = '음높이: --';
+            document.getElementById('audioFeedback').innerHTML = '';
+        }
+
+        // 오디오 분석
+        function analyzeAudio() {
+            if (!isAnalyzing) return;
+
+            analyser.getByteTimeDomainData(dataArray);
+            analyser.getByteFrequencyData(dataArray);
+
+            // 시각화 그리기
+            drawAudioVisualization();
+
+            // 음높이 감지
+            const pitch = detectPitch();
+
+            // 소리 레벨 감지
+            const volume = getVolume();
+
+            // 피드백 제공
+            provideAudioFeedback(pitch, volume);
+
+            requestAnimationFrame(analyzeAudio);
+        }
+
+        // 오디오 시각화
+        function drawAudioVisualization() {
+            const visualCanvas = document.getElementById('audioVisualization');
+            const visualCtx = visualCanvas.getContext('2d');
+            const WIDTH = visualCanvas.width;
+            const HEIGHT = visualCanvas.height;
+
+            analyser.getByteFrequencyData(dataArray);
+
+            visualCtx.fillStyle = 'rgb(0, 0, 0)';
+            visualCtx.fillRect(0, 0, WIDTH, HEIGHT);
+
+            const barWidth = (WIDTH / dataArray.length) * 2.5;
+            let barHeight;
+            let x = 0;
+
+            for (let i = 0; i < dataArray.length; i++) {
+                barHeight = (dataArray[i] / 255) * HEIGHT;
+
+                const gradient = visualCtx.createLinearGradient(0, HEIGHT - barHeight, 0, HEIGHT);
+                gradient.addColorStop(0, '#667eea');
+                gradient.addColorStop(1, '#764ba2');
+
+                visualCtx.fillStyle = gradient;
+                visualCtx.fillRect(x, HEIGHT - barHeight, barWidth, barHeight);
+
+                x += barWidth + 1;
+            }
+        }
+
+        // 음높이 감지 (자기상관 함수 사용)
+        function detectPitch() {
+            analyser.getByteTimeDomainData(dataArray);
+
+            // AC2F (Auto-Correlation Function)
+            const bufferLength = dataArray.length;
+            let sum = 0;
+            for (let i = 0; i < bufferLength; i++) {
+                const value = (dataArray[i] - 128) / 128;
+                sum += value * value;
+            }
+
+            if (sum === 0) return null;
+
+            let maxCorrelation = 0;
+            let maxLag = 0;
+
+            // 음높이 범위: 대략 80Hz ~ 1000Hz
+            const minLag = Math.floor(audioContext.sampleRate / 1000);
+            const maxLagLimit = Math.floor(audioContext.sampleRate / 80);
+
+            for (let lag = minLag; lag < maxLagLimit && lag < bufferLength / 2; lag++) {
+                let correlation = 0;
+                for (let i = 0; i < bufferLength - lag; i++) {
+                    const val1 = (dataArray[i] - 128) / 128;
+                    const val2 = (dataArray[i + lag] - 128) / 128;
+                    correlation += val1 * val2;
+                }
+
+                if (correlation > maxCorrelation) {
+                    maxCorrelation = correlation;
+                    maxLag = lag;
+                }
+            }
+
+            if (maxCorrelation > 0.01) {
+                const frequency = audioContext.sampleRate / maxLag;
+                return frequency;
+            }
+
+            return null;
+        }
+
+        // 볼륨 감지
+        function getVolume() {
+            analyser.getByteTimeDomainData(dataArray);
+
+            let sum = 0;
+            for (let i = 0; i < dataArray.length; i++) {
+                const value = (dataArray[i] - 128) / 128;
+                sum += value * value;
+            }
+
+            return Math.sqrt(sum / dataArray.length);
+        }
+
+        // 오디오 피드백
+        function provideAudioFeedback(pitch, volume) {
+            const pitchDisplay = document.getElementById('pitchDisplay');
+            const audioFeedback = document.getElementById('audioFeedback');
+            const feedbackItems = [];
+
+            // 음높이 표시
+            if (pitch) {
+                const noteName = getNoteName(pitch);
+                pitchDisplay.innerHTML = `음높이: ${pitch.toFixed(1)} Hz<br>${noteName}`;
+            } else {
+                pitchDisplay.textContent = '음높이: --';
+            }
+
+            // 볼륨 피드백
+            if (volume > 0.01) {
+                if (volume > 0.1) {
+                    feedbackItems.push({
+                        type: 'warning',
+                        title: '⚠ 너무 큰 소리',
+                        text: '조금 더 부드럽게 불어보세요.'
+                    });
+                } else if (volume > 0.02) {
+                    feedbackItems.push({
+                        type: 'good',
+                        title: '✓ 적절한 소리',
+                        text: '좋은 호흡입니다!'
+                    });
+                } else {
+                    feedbackItems.push({
+                        type: 'warning',
+                        title: '⚠ 약한 소리',
+                        text: '조금 더 강하게 불어보세요.'
+                    });
+                }
+            } else {
+                feedbackItems.push({
+                    type: 'error',
+                    title: '✗ 소리가 감지되지 않음',
+                    text: '단소를 불어보세요.'
+                });
+            }
+
+            // 음높이 피드백
+            if (pitch) {
+                if (pitch >= 440 && pitch <= 880) {
+                    feedbackItems.push({
+                        type: 'good',
+                        title: '✓ 음높이 좋음',
+                        text: '단소의 적절한 음역대입니다.'
+                    });
+                } else if (pitch < 440) {
+                    feedbackItems.push({
+                        type: 'warning',
+                        title: '⚠ 음높이가 낮음',
+                        text: '입김을 조금 더 강하게 불어보세요.'
+                    });
+                } else {
+                    feedbackItems.push({
+                        type: 'warning',
+                        title: '⚠ 음높이가 높음',
+                        text: '입김을 조금 더 부드럽게 조절해보세요.'
+                    });
+                }
+            }
+
+            // 피드백 UI 업데이트
+            audioFeedback.innerHTML = feedbackItems.map(item => `
+                <div class="feedback-item ${item.type}">
+                    <h3>${item.title}</h3>
+                    <p>${item.text}</p>
+                </div>
+            `).join('');
+        }
+
+        // 주파수를 단소 음계로 변환
+        function getNoteName(frequency) {
+            // 한국 전통 십이율명 (12율명) - 간단 표기
+            const koreanNotes = [
+                { western: 'C', name: '황' },
+                { western: 'C#', name: '대' },
+                { western: 'D', name: '태' },
+                { western: 'D#', name: '협' },
+                { western: 'E', name: '고' },
+                { western: 'F', name: '중' },
+                { western: 'F#', name: '유' },
+                { western: 'G', name: '임' },
+                { western: 'G#', name: '이' },
+                { western: 'A', name: '남' },
+                { western: 'A#', name: '무' },
+                { western: 'B', name: '응' }
+            ];
+
+            const A4 = 440;
+            const C0 = A4 * Math.pow(2, -4.75);
+
+            const halfSteps = 12 * Math.log2(frequency / C0);
+            const noteIndex = Math.round(halfSteps) % 12;
+            const octave = Math.floor(halfSteps / 12);
+
+            const note = koreanNotes[noteIndex];
+
+            // 단소의 주요 음역 표시 (G4~E5가 기본 음역)
+            let dansoPosition = '';
+            if (octave === 4) {
+                if (note.western === 'G') dansoPosition = ' (筒音)';
+                else if (note.western === 'A') dansoPosition = ' (1공)';
+                else if (note.western === 'B') dansoPosition = ' (2공)';
+            } else if (octave === 5) {
+                if (note.western === 'C') dansoPosition = ' (3공)';
+                else if (note.western === 'D') dansoPosition = ' (4공)';
+                else if (note.western === 'E') dansoPosition = ' (5공)';
+            }
+
+            return `${note.name}${dansoPosition}`;
+        }
+    </script>
+</body>
+</html>
