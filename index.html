@@ -368,6 +368,123 @@
             background: #f7fafc;
             transform: scale(1.05);
         }
+
+        /* 게임 스타일 */
+        .game-container {
+            margin-top: 20px;
+        }
+
+        .game-status {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 30px;
+            border-radius: 12px;
+            color: white;
+            margin-bottom: 20px;
+        }
+
+        .game-info {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .score-display {
+            font-size: 1.3rem;
+            font-weight: bold;
+        }
+
+        .timer-display {
+            font-size: 1.3rem;
+            font-weight: bold;
+            text-align: center;
+            margin-top: 15px;
+        }
+
+        .target-note {
+            text-align: center;
+            font-size: 3rem;
+            font-weight: bold;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 10px;
+            margin-top: 10px;
+        }
+
+        .difficulty-selection {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .difficulty-selection h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+        }
+
+        .difficulty-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+        }
+
+        .difficulty-btn {
+            padding: 15px 30px;
+            border: 3px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 10px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .difficulty-btn:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .difficulty-btn.selected {
+            background: #667eea;
+            color: white;
+            box-shadow: 0 0 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .game-mic-control {
+            text-align: center;
+            margin-bottom: 15px;
+        }
+
+        .game-mic-control button {
+            padding: 12px 30px;
+        }
+
+        .game-controls {
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .game-result {
+            text-align: center;
+            padding: 20px;
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 12px;
+            margin-top: 15px;
+        }
+
+        .game-result h3 {
+            color: white;
+            font-size: 1.8rem;
+            margin-bottom: 10px;
+        }
+
+        .game-result p {
+            font-size: 1.3rem;
+            color: white;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -407,6 +524,51 @@
                     <button class="danger hidden" id="stopAudio">마이크 중지</button>
                 </div>
                 <div id="audioFeedback" class="feedback-section"></div>
+            </div>
+
+            <!-- 음계 게임 -->
+            <div class="card instructions">
+                <h2>🎮 음계 맞추기 게임</h2>
+                <div class="game-container">
+                    <div class="game-status">
+                        <div class="game-info">
+                            <div class="score-display">
+                                점수: <span id="gameScore">0</span>
+                            </div>
+                        </div>
+                        <div class="target-note" id="targetNote">
+                            게임을 시작하세요
+                        </div>
+                        <div class="timer-display hidden" id="timerDisplay">
+                            남은 시간: <span id="gameTimer">--</span>초
+                        </div>
+                        <div class="game-result hidden" id="gameResult">
+                            <h3>게임 오버!</h3>
+                            <p id="finalScore"></p>
+                        </div>
+                    </div>
+
+                    <div class="difficulty-selection" id="difficultySelection">
+                        <h3>난이도 선택</h3>
+                        <div class="difficulty-buttons">
+                            <button class="difficulty-btn" data-difficulty="easy">하 (10초)</button>
+                            <button class="difficulty-btn" data-difficulty="medium">중 (7초)</button>
+                            <button class="difficulty-btn" data-difficulty="hard">상 (3초)</button>
+                        </div>
+                    </div>
+
+                    <div class="game-mic-control" id="gameMicControl">
+                        <button class="secondary" id="gameMicBtn">마이크 켜기</button>
+                        <p style="text-align: center; color: #48bb78; margin-top: 10px; display: none;" id="gameMicStatus">
+                            ✓ 마이크가 켜져 있습니다
+                        </p>
+                    </div>
+
+                    <div class="game-controls">
+                        <button class="primary" id="startGame" disabled>게임 시작</button>
+                        <button class="danger hidden" id="stopGame">게임 중지</button>
+                    </div>
+                </div>
             </div>
 
             <!-- 단계별 학습 가이드 -->
@@ -518,22 +680,54 @@
         </div>
     </div>
 
-    <!-- TensorFlow.js 및 FaceMesh 라이브러리 -->
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.11.0"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/face-landmarks-detection@1.0.2"></script>
+    <script type="module">
+        // MediaPipe 라이브러리 import
+        import { FaceLandmarker, FilesetResolver } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3';
 
-    <script>
         // 전역 변수
-        let video, canvas, ctx, detector;
+        let video, canvas, ctx, faceLandmarker;
         let audioContext, analyser, microphone, dataArray;
         let animationId;
         let isDetecting = false;
         let isAnalyzing = false;
         let videoStream = null;
         let audioStream = null;
+        let lastVideoTime = -1;
+
+        // 음높이 평균화를 위한 히스토리 (1.5초간 저장)
+        let pitchHistory = [];
+        const PITCH_HISTORY_DURATION = 1500; // 1.5초 (밀리초)
+
+        // 게임 관련 변수
+        let gameActive = false;
+        let gameScore = 0;
+        let currentTarget = null;
+        let gameTimer = null;
+        let gameDifficulty = null;
+        let timeRemaining = 0;
+        let matchStartTime = null;  // 음높이 매칭 시작 시간
+        const MATCH_DURATION = 500;  // 0.5초 (밀리초)
+
+        // 게임 음계 정의 (주파수 Hz) - 실제 단소 음계 기준
+        const gameNotes = [
+            { name: '중', western: 'G#4', frequency: 410, tolerance: 30 },    // 중(仲)
+            { name: '임', western: 'A#4', frequency: 465, tolerance: 30 },    // 임(林)
+            { name: '무', western: 'C#5', frequency: 550, tolerance: 30 },    // 무(無)
+            { name: '황', western: 'D#5', frequency: 620, tolerance: 30 },    // 황(潢)
+            { name: '태', western: 'F5', frequency: 702, tolerance: 35 },     // 태(汰)
+            { name: '청중', western: 'G#5', frequency: 842, tolerance: 40 },   // 청중(淸仲)
+            { name: '청임', western: 'A#5', frequency: 932, tolerance: 40 }    // 청임(淸林)
+        ];
+
+        // 난이도별 제한 시간 (초)
+        const difficultySettings = {
+            easy: 10,
+            medium: 7,
+            hard: 3
+        };
 
         // 초기화
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
             video = document.getElementById('webcam');
             canvas = document.getElementById('canvas');
             ctx = canvas.getContext('2d');
@@ -542,6 +736,26 @@
             document.getElementById('stopCamera').addEventListener('click', stopCamera);
             document.getElementById('startAudio').addEventListener('click', startAudio);
             document.getElementById('stopAudio').addEventListener('click', stopAudio);
+
+            // 게임 난이도 선택 버튼
+            document.querySelectorAll('.difficulty-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.difficulty-btn').forEach(b => b.classList.remove('selected'));
+                    this.classList.add('selected');
+                    gameDifficulty = this.dataset.difficulty;
+                    document.getElementById('startGame').disabled = false;
+                });
+            });
+
+            // 게임 시작/중지 버튼
+            document.getElementById('startGame').addEventListener('click', startGame);
+            document.getElementById('stopGame').addEventListener('click', stopGame);
+
+            // 게임 카드의 마이크 켜기 버튼
+            document.getElementById('gameMicBtn').addEventListener('click', startAudio);
+
+            // MediaPipe 로드 확인
+            console.log('MediaPipe 라이브러리 로드 완료!', FaceLandmarker, FilesetResolver);
         });
 
         // 카메라 시작
@@ -556,33 +770,51 @@
 
                 // 웹캠 스트림 가져오기
                 videoStream = await navigator.mediaDevices.getUserMedia({
-                    video: { width: 640, height: 480 }
+                    video: {
+                        width: { ideal: 1280 },
+                        height: { ideal: 720 },
+                        facingMode: 'user'
+                    }
                 });
                 video.srcObject = videoStream;
 
                 // 비디오 로드 대기
                 await new Promise((resolve) => {
                     video.onloadedmetadata = () => {
+                        console.log('비디오 로드 완료:', video.videoWidth, 'x', video.videoHeight);
                         resolve();
                     };
                 });
 
+                // 비디오 재생 시작
+                await video.play();
+                console.log('비디오 재생 시작');
+
                 // 캔버스 크기 설정
                 canvas.width = video.videoWidth;
                 canvas.height = video.videoHeight;
+                console.log('캔버스 크기 설정:', canvas.width, 'x', canvas.height);
 
-                // FaceMesh 모델 로드
+                // MediaPipe Face Landmarker 모델 로드
                 statusIndicator.classList.remove('active');
                 startBtn.textContent = 'AI 모델 로딩 중...';
 
-                detector = await faceLandmarksDetection.createDetector(
-                    faceLandmarksDetection.SupportedModels.MediaPipeFaceMesh,
-                    {
-                        runtime: 'tfjs',
-                        refineLandmarks: true,
-                        maxFaces: 1
-                    }
+                const vision = await FilesetResolver.forVisionTasks(
+                    "https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm"
                 );
+
+                faceLandmarker = await FaceLandmarker.createFromOptions(vision, {
+                    baseOptions: {
+                        modelAssetPath: 'https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task',
+                        delegate: "GPU"
+                    },
+                    outputFaceBlendshapes: false,
+                    outputFacialTransformationMatrixes: false,
+                    runningMode: "VIDEO",
+                    numFaces: 1
+                });
+
+                console.log('MediaPipe Face Landmarker 로드 완료!');
 
                 statusIndicator.classList.add('active');
                 startBtn.classList.add('hidden');
@@ -636,24 +868,33 @@
         }
 
         // 얼굴 감지 및 분석
-        async function detectFace() {
+        function detectFace() {
             if (!isDetecting) return;
 
             try {
-                const faces = await detector.estimateFaces(video);
+                // 비디오 시간이 변경되었을 때만 감지 실행
+                let startTimeMs = performance.now();
+                if (video.currentTime !== lastVideoTime) {
+                    lastVideoTime = video.currentTime;
 
-                // 캔버스 초기화
-                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    // MediaPipe Face Landmarker로 얼굴 감지
+                    const results = faceLandmarker.detectForVideo(video, startTimeMs);
 
-                if (faces.length > 0) {
-                    const face = faces[0];
-                    const keypoints = face.keypoints;
+                    // 캔버스 초기화
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-                    // 입술 관련 랜드마크 그리기
-                    drawLipLandmarks(keypoints);
+                    if (results.faceLandmarks && results.faceLandmarks.length > 0) {
+                        const landmarks = results.faceLandmarks[0];
 
-                    // 입술 분석
-                    analyzeLipShape(keypoints);
+                        // 입술 관련 랜드마크 그리기
+                        drawLipLandmarks(landmarks);
+
+                        // 입술 분석
+                        analyzeLipShape(landmarks);
+                    } else {
+                        // 얼굴이 감지되지 않아도 화면 중앙에 가이드라인 표시
+                        drawCenterGuidelines();
+                    }
                 }
 
             } catch (error) {
@@ -663,8 +904,118 @@
             animationId = requestAnimationFrame(detectFace);
         }
 
+        // 화면 중앙에 가이드라인 그리기 (얼굴 감지 안 될 때)
+        function drawCenterGuidelines() {
+            ctx.save();
+
+            const centerX = canvas.width / 2;
+            const centerY = canvas.height / 2;
+
+            // 중앙 표시
+            ctx.fillStyle = '#f56565';
+            ctx.beginPath();
+            ctx.arc(centerX, centerY, 8, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // 수직 가이드라인
+            ctx.strokeStyle = '#FF5757';
+            ctx.lineWidth = 3;
+            ctx.setLineDash([10, 5]);
+            ctx.beginPath();
+            ctx.moveTo(centerX, centerY);
+            ctx.lineTo(centerX, centerY + 120);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+            // 단소 위치 가이드 박스
+            const dansoY = centerY + 80;
+            const dansoWidth = 100;
+            const dansoHeight = 20;
+
+            ctx.fillStyle = 'rgba(102, 126, 234, 0.5)';
+            ctx.fillRect(centerX - dansoWidth / 2, dansoY, dansoWidth, dansoHeight);
+            ctx.strokeStyle = '#667eea';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(centerX - dansoWidth / 2, dansoY, dansoWidth, dansoHeight);
+
+            // 취구 위치 표시
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(centerX, dansoY + dansoHeight / 2, 8, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.strokeStyle = '#FFA500';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // 화살표
+            ctx.strokeStyle = '#48bb78';
+            ctx.fillStyle = '#48bb78';
+            ctx.lineWidth = 3;
+            const arrowStartY = centerY + 15;
+            const arrowEndY = dansoY - 8;
+
+            ctx.beginPath();
+            ctx.moveTo(centerX, arrowStartY);
+            ctx.lineTo(centerX, arrowEndY);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(centerX, arrowEndY);
+            ctx.lineTo(centerX - 8, arrowEndY + 12);
+            ctx.lineTo(centerX + 8, arrowEndY + 12);
+            ctx.closePath();
+            ctx.fill();
+
+            // 텍스트
+            ctx.font = 'bold 16px Arial';
+            ctx.fillStyle = '#FFFF00';
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 4;
+
+            const text1 = '← 취구 위치';
+            const text2 = '바람 방향 ↓';
+
+            ctx.strokeText(text1, centerX + 15, dansoY + dansoHeight / 2 + 5);
+            ctx.fillText(text1, centerX + 15, dansoY + dansoHeight / 2 + 5);
+
+            ctx.strokeText(text2, centerX + 10, arrowStartY + 25);
+            ctx.fillText(text2, centerX + 10, arrowStartY + 25);
+
+            // 안내 메시지
+            ctx.font = 'bold 20px Arial';
+            ctx.fillStyle = '#FF5757';
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 4;
+            const message = '얼굴을 화면에 맞춰주세요';
+            const messageX = centerX - ctx.measureText(message).width / 2;
+            ctx.strokeText(message, messageX, centerY - 100);
+            ctx.fillText(message, messageX, centerY - 100);
+
+            const message2 = '(단소 들 공간을 고려해 적당한 거리 유지)';
+            ctx.font = 'bold 14px Arial';
+            const messageX2 = centerX - ctx.measureText(message2).width / 2;
+            ctx.strokeText(message2, messageX2, centerY - 70);
+            ctx.fillText(message2, messageX2, centerY - 70);
+
+            ctx.restore();
+        }
+
         // 입술 랜드마크 그리기
-        function drawLipLandmarks(keypoints) {
+        function drawLipLandmarks(landmarks) {
+            // 상태 저장
+            ctx.save();
+
+            // MediaPipe landmarks를 캔버스 좌표로 변환하는 함수
+            function toCanvasCoords(landmark) {
+                return {
+                    x: landmark.x * canvas.width,
+                    y: landmark.y * canvas.height
+                };
+            }
+
             // 입술 외곽선 인덱스 (MediaPipe FaceMesh)
             const upperLip = [61, 185, 40, 39, 37, 0, 267, 269, 270, 409, 291];
             const lowerLip = [146, 91, 181, 84, 17, 314, 405, 321, 375, 291];
@@ -675,7 +1026,7 @@
             ctx.lineWidth = 2;
             ctx.beginPath();
             upperLip.forEach((idx, i) => {
-                const point = keypoints[idx];
+                const point = toCanvasCoords(landmarks[idx]);
                 if (i === 0) {
                     ctx.moveTo(point.x, point.y);
                 } else {
@@ -686,9 +1037,10 @@
 
             // 아랫입술 그리기
             ctx.strokeStyle = '#667eea';
+            ctx.lineWidth = 2;
             ctx.beginPath();
             lowerLip.forEach((idx, i) => {
-                const point = keypoints[idx];
+                const point = toCanvasCoords(landmarks[idx]);
                 if (i === 0) {
                     ctx.moveTo(point.x, point.y);
                 } else {
@@ -700,36 +1052,119 @@
             // 입꼬리 강조
             ctx.fillStyle = '#ed8936';
             lipCorners.forEach(idx => {
-                const point = keypoints[idx];
+                const point = toCanvasCoords(landmarks[idx]);
                 ctx.beginPath();
-                ctx.arc(point.x, point.y, 5, 0, 2 * Math.PI);
+                ctx.arc(point.x, point.y, 6, 0, 2 * Math.PI);
                 ctx.fill();
             });
 
-            // 입 중앙 표시
-            const center = keypoints[13]; // 입 중앙
+            // 입 중앙 표시 (더 크게)
+            const center = toCanvasCoords(landmarks[13]); // 입 중앙
             ctx.fillStyle = '#f56565';
             ctx.beginPath();
-            ctx.arc(center.x, center.y, 5, 0, 2 * Math.PI);
+            ctx.arc(center.x, center.y, 8, 0, 2 * Math.PI);
             ctx.fill();
+            // 외곽선 추가
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+
+            // === 단소 취구 위치 가이드라인 추가 ===
+
+            // 1. 입 중앙에서 아래로 내려오는 수직 가이드라인 (바람 방향 정렬선)
+            ctx.strokeStyle = '#FF5757';  // 밝은 빨강
+            ctx.lineWidth = 3;
+            ctx.setLineDash([10, 5]); // 점선
+            ctx.beginPath();
+            ctx.moveTo(center.x, center.y);
+            ctx.lineTo(center.x, center.y + 120);
+            ctx.stroke();
+            ctx.setLineDash([]); // 점선 해제
+
+            // 2. 아랫입술 아래에 단소 위치 가이드 박스
+            const lowerLipBottom = toCanvasCoords(landmarks[17]); // 아랫입술 중앙 하단
+            const dansoY = lowerLipBottom.y + 40;
+            const dansoWidth = 100;
+            const dansoHeight = 20;
+
+            // 단소 본체 표시
+            ctx.fillStyle = 'rgba(102, 126, 234, 0.5)';
+            ctx.fillRect(center.x - dansoWidth / 2, dansoY, dansoWidth, dansoHeight);
+            ctx.strokeStyle = '#667eea';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(center.x - dansoWidth / 2, dansoY, dansoWidth, dansoHeight);
+
+            // 3. 취구 위치 표시
+            ctx.fillStyle = '#FFD700';
+            ctx.beginPath();
+            ctx.arc(center.x, dansoY + dansoHeight / 2, 8, 0, 2 * Math.PI);
+            ctx.fill();
+            ctx.strokeStyle = '#FFA500';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+
+            // 4. 바람 방향 화살표
+            ctx.strokeStyle = '#48bb78';
+            ctx.fillStyle = '#48bb78';
+            ctx.lineWidth = 3;
+            const arrowStartY = center.y + 15;
+            const arrowEndY = dansoY - 8;
+
+            ctx.beginPath();
+            ctx.moveTo(center.x, arrowStartY);
+            ctx.lineTo(center.x, arrowEndY);
+            ctx.stroke();
+
+            ctx.beginPath();
+            ctx.moveTo(center.x, arrowEndY);
+            ctx.lineTo(center.x - 8, arrowEndY + 12);
+            ctx.lineTo(center.x + 8, arrowEndY + 12);
+            ctx.closePath();
+            ctx.fill();
+
+            // 5. 가이드 텍스트
+            ctx.font = 'bold 16px Arial';
+            ctx.fillStyle = '#FFFF00';
+            ctx.strokeStyle = '#000000';
+            ctx.lineWidth = 4;
+
+            const text1 = '← 취구 위치';
+            const text2 = '바람 방향 ↓';
+
+            ctx.strokeText(text1, center.x + 15, dansoY + dansoHeight / 2 + 5);
+            ctx.fillText(text1, center.x + 15, dansoY + dansoHeight / 2 + 5);
+
+            ctx.strokeText(text2, center.x + 10, arrowStartY + 25);
+            ctx.fillText(text2, center.x + 10, arrowStartY + 25);
+
+            // 상태 복원
+            ctx.restore();
         }
 
         // 입술 모양 분석
-        function analyzeLipShape(keypoints) {
+        function analyzeLipShape(landmarks) {
             const feedback = document.getElementById('lipFeedback');
             const feedbackItems = [];
 
+            // MediaPipe landmarks를 캔버스 좌표로 변환
+            function toCanvasCoords(landmark) {
+                return {
+                    x: landmark.x * canvas.width,
+                    y: landmark.y * canvas.height
+                };
+            }
+
             // 입술 너비 계산
-            const leftCorner = keypoints[61];
-            const rightCorner = keypoints[291];
+            const leftCorner = toCanvasCoords(landmarks[61]);
+            const rightCorner = toCanvasCoords(landmarks[291]);
             const lipWidth = Math.sqrt(
                 Math.pow(rightCorner.x - leftCorner.x, 2) +
                 Math.pow(rightCorner.y - leftCorner.y, 2)
             );
 
             // 입술 높이 계산
-            const upperLip = keypoints[0];
-            const lowerLip = keypoints[17];
+            const upperLip = toCanvasCoords(landmarks[0]);
+            const lowerLip = toCanvasCoords(landmarks[17]);
             const lipHeight = Math.sqrt(
                 Math.pow(lowerLip.x - upperLip.x, 2) +
                 Math.pow(lowerLip.y - upperLip.y, 2)
@@ -738,41 +1173,49 @@
             // 입술 종횡비
             const aspectRatio = lipWidth / lipHeight;
 
-            // 입술 너비 피드백
-            if (aspectRatio > 4.0) {
+            // 입술 너비 피드백 (기준 대폭 완화)
+            if (aspectRatio > 2.5) {
                 feedbackItems.push({
                     type: 'good',
                     title: '✓ 입술 모양 좋음',
                     text: '입술이 넓게 펴져 있습니다. 좋은 자세입니다!'
                 });
-            } else if (aspectRatio > 3.0) {
+            } else if (aspectRatio > 2.0) {
                 feedbackItems.push({
                     type: 'warning',
-                    title: '⚠ 입술을 더 펴세요',
+                    title: '⚠ 입술을 조금 더 펴세요',
                     text: '입술을 양옆으로 조금 더 넓게 펴보세요.'
                 });
-            } else {
+            } else if (aspectRatio > 1.5) {
                 feedbackItems.push({
                     type: 'error',
                     title: '✗ 입술이 좁습니다',
                     text: '"휘" 발음하듯이 입술을 양옆으로 넓게 펴세요.'
                 });
             }
+            // aspectRatio <= 1.5일 때는 피드백 없음 (너무 극단적인 경우만)
 
-            // 입 벌림 정도 피드백
-            if (lipHeight < 15) {
+            // 입 벌림 정도 피드백 (기준 대폭 완화)
+            if (lipHeight < 35) {
                 feedbackItems.push({
                     type: 'good',
-                    title: '✓ 입 벌림 적절',
-                    text: '입을 너무 벌리지 않고 있습니다.'
+                    title: '✓ 입술 간격 좋음',
+                    text: '입술이 적절히 닫혀 있습니다.'
                 });
-            } else {
+            } else if (lipHeight < 50) {
                 feedbackItems.push({
                     type: 'warning',
-                    title: '⚠ 입을 조금 닫으세요',
-                    text: '입을 너무 벌리지 마세요. 살짝만 벌리면 됩니다.'
+                    title: '⚠ 입을 살짝 더 닫으세요',
+                    text: '입술을 좌우로 펴되, 위아래로는 거의 닫힌 상태를 유지하세요.'
+                });
+            } else if (lipHeight < 70) {
+                feedbackItems.push({
+                    type: 'error',
+                    title: '✗ 입이 너무 벌어져 있습니다',
+                    text: '입을 벌리지 말고 입술을 좌우로만 펴세요. "휘" 발음할 때처럼요.'
                 });
             }
+            // lipHeight >= 70일 때는 피드백 없음 (너무 극단적인 경우만)
 
             // 입꼬리 긴장도 확인 (각도 계산)
             const leftY = leftCorner.y;
@@ -830,6 +1273,11 @@
                 stopBtn.classList.remove('hidden');
                 isAnalyzing = true;
 
+                // 게임 카드 마이크 상태 업데이트
+                document.getElementById('gameMicBtn').classList.add('hidden');
+                document.getElementById('gameMicStatus').style.display = 'block';
+                document.getElementById('startGame').disabled = gameDifficulty === null;
+
                 // 오디오 분석 시작
                 analyzeAudio();
 
@@ -868,6 +1316,9 @@
                 audioContext = null;
             }
 
+            // pitch 히스토리 초기화
+            pitchHistory = [];
+
             // 시각화 캔버스 초기화
             const visualCanvas = document.getElementById('audioVisualization');
             const visualCtx = visualCanvas.getContext('2d');
@@ -880,6 +1331,11 @@
             startBtn.disabled = false;
             startBtn.textContent = '마이크 시작';
             stopBtn.classList.add('hidden');
+
+            // 게임 카드 마이크 상태 업데이트
+            document.getElementById('gameMicBtn').classList.remove('hidden');
+            document.getElementById('gameMicStatus').style.display = 'none';
+            document.getElementById('startGame').disabled = true;
 
             // 피드백 초기화
             document.getElementById('pitchDisplay').textContent = '음높이: --';
@@ -897,13 +1353,19 @@
             drawAudioVisualization();
 
             // 음높이 감지
-            const pitch = detectPitch();
+            const currentPitch = detectPitch();
+
+            // pitch를 히스토리에 추가
+            addPitchToHistory(currentPitch);
+
+            // 평균 pitch 계산 (1.5초 평균)
+            const averagePitch = getAveragePitch();
 
             // 소리 레벨 감지
             const volume = getVolume();
 
-            // 피드백 제공
-            provideAudioFeedback(pitch, volume);
+            // 피드백 제공 (평균값 사용)
+            provideAudioFeedback(averagePitch, volume);
 
             requestAnimationFrame(analyzeAudio);
         }
@@ -994,6 +1456,44 @@
             return Math.sqrt(sum / dataArray.length);
         }
 
+        // pitch를 히스토리에 추가
+        function addPitchToHistory(pitch) {
+            if (pitch !== null && pitch > 0) {
+                const now = Date.now();
+                pitchHistory.push({
+                    pitch: pitch,
+                    timestamp: now
+                });
+
+                // 오래된 데이터 제거 (1.5초 이전)
+                pitchHistory = pitchHistory.filter(entry =>
+                    now - entry.timestamp < PITCH_HISTORY_DURATION
+                );
+            }
+        }
+
+        // 평균 pitch 계산
+        function getAveragePitch() {
+            if (pitchHistory.length === 0) {
+                return null;
+            }
+
+            // 최근 데이터에 더 높은 가중치 부여 (가중 평균)
+            const now = Date.now();
+            let weightedSum = 0;
+            let totalWeight = 0;
+
+            pitchHistory.forEach(entry => {
+                const age = now - entry.timestamp;
+                // 최근 데이터일수록 가중치가 높음 (선형 감소)
+                const weight = 1 - (age / PITCH_HISTORY_DURATION);
+                weightedSum += entry.pitch * weight;
+                totalWeight += weight;
+            });
+
+            return totalWeight > 0 ? weightedSum / totalWeight : null;
+        }
+
         // 오디오 피드백
         function provideAudioFeedback(pitch, volume) {
             const pitchDisplay = document.getElementById('pitchDisplay');
@@ -1003,7 +1503,7 @@
             // 음높이 표시
             if (pitch) {
                 const noteName = getNoteName(pitch);
-                pitchDisplay.innerHTML = `음높이: ${pitch.toFixed(1)} Hz<br>${noteName}`;
+                pitchDisplay.innerHTML = `음높이: ${pitch.toFixed(1)} Hz<br>음계: ${noteName}`;
             } else {
                 pitchDisplay.textContent = '음높이: --';
             }
@@ -1071,45 +1571,168 @@
 
         // 주파수를 단소 음계로 변환
         function getNoteName(frequency) {
-            // 한국 전통 십이율명 (12율명) - 간단 표기
-            const koreanNotes = [
-                { western: 'C', name: '황' },
-                { western: 'C#', name: '대' },
-                { western: 'D', name: '태' },
-                { western: 'D#', name: '협' },
-                { western: 'E', name: '고' },
-                { western: 'F', name: '중' },
-                { western: 'F#', name: '유' },
-                { western: 'G', name: '임' },
-                { western: 'G#', name: '이' },
-                { western: 'A', name: '남' },
-                { western: 'A#', name: '무' },
-                { western: 'B', name: '응' }
+            // 실제 단소 음계 정의 (주파수 기준)
+            const dansoNotes = [
+                { name: '중', frequency: 410, tolerance: 40 },
+                { name: '임', frequency: 465, tolerance: 40 },
+                { name: '무', frequency: 550, tolerance: 40 },
+                { name: '황', frequency: 620, tolerance: 40 },
+                { name: '태', frequency: 702, tolerance: 45 },
+                { name: '청중', frequency: 842, tolerance: 50 },
+                { name: '청임', frequency: 932, tolerance: 50 }
             ];
 
-            const A4 = 440;
-            const C0 = A4 * Math.pow(2, -4.75);
+            // 가장 가까운 단소 음계 찾기
+            let closestNote = null;
+            let minDiff = Infinity;
 
-            const halfSteps = 12 * Math.log2(frequency / C0);
-            const noteIndex = Math.round(halfSteps) % 12;
-            const octave = Math.floor(halfSteps / 12);
-
-            const note = koreanNotes[noteIndex];
-
-            // 단소의 주요 음역 표시 (G4~E5가 기본 음역)
-            let dansoPosition = '';
-            if (octave === 4) {
-                if (note.western === 'G') dansoPosition = ' (筒音)';
-                else if (note.western === 'A') dansoPosition = ' (1공)';
-                else if (note.western === 'B') dansoPosition = ' (2공)';
-            } else if (octave === 5) {
-                if (note.western === 'C') dansoPosition = ' (3공)';
-                else if (note.western === 'D') dansoPosition = ' (4공)';
-                else if (note.western === 'E') dansoPosition = ' (5공)';
+            for (const note of dansoNotes) {
+                const diff = Math.abs(frequency - note.frequency);
+                if (diff < minDiff && diff <= note.tolerance) {
+                    minDiff = diff;
+                    closestNote = note;
+                }
             }
 
-            return `${note.name}${dansoPosition}`;
+            // 단소 음계에 매칭되면 해당 음계 이름만 반환
+            if (closestNote) {
+                return closestNote.name;
+            }
+
+            // 매칭되지 않으면 '--' 반환
+            return '--';
         }
+
+        // ===== 게임 함수들 =====
+
+        // 게임 시작
+        function startGame() {
+            if (!isAnalyzing) {
+                alert('먼저 마이크를 시작해주세요!');
+                return;
+            }
+
+            gameActive = true;
+            gameScore = 0;
+
+            // UI 업데이트
+            document.getElementById('gameScore').textContent = '0';
+            document.getElementById('startGame').classList.add('hidden');
+            document.getElementById('stopGame').classList.remove('hidden');
+            document.getElementById('difficultySelection').style.opacity = '0.5';
+            document.getElementById('difficultySelection').style.pointerEvents = 'none';
+            document.getElementById('timerDisplay').classList.remove('hidden');
+            document.getElementById('gameResult').classList.add('hidden');
+
+            // 첫 음계 제시
+            nextRound();
+        }
+
+        // 게임 중지
+        function stopGame() {
+            gameActive = false;
+            if (gameTimer) {
+                clearInterval(gameTimer);
+                gameTimer = null;
+            }
+
+            // UI 업데이트
+            document.getElementById('startGame').classList.remove('hidden');
+            document.getElementById('stopGame').classList.add('hidden');
+            document.getElementById('difficultySelection').style.opacity = '1';
+            document.getElementById('difficultySelection').style.pointerEvents = 'auto';
+            document.getElementById('targetNote').textContent = '게임을 시작하세요';
+            document.getElementById('targetNote').style.background = 'rgba(255, 255, 255, 0.2)';
+            document.getElementById('timerDisplay').classList.add('hidden');
+
+            // 최종 점수 표시
+            document.getElementById('finalScore').textContent = `최종 점수: ${gameScore}점`;
+            document.getElementById('gameResult').classList.remove('hidden');
+        }
+
+        // 다음 라운드
+        function nextRound() {
+            if (!gameActive) return;
+
+            // 랜덤 음계 선택
+            currentTarget = gameNotes[Math.floor(Math.random() * gameNotes.length)];
+            document.getElementById('targetNote').textContent = `"${currentTarget.name}" 을(를) 연주하세요!`;
+
+            // 타이머 시작
+            timeRemaining = difficultySettings[gameDifficulty];
+            document.getElementById('gameTimer').textContent = timeRemaining;
+
+            if (gameTimer) clearInterval(gameTimer);
+            gameTimer = setInterval(() => {
+                timeRemaining--;
+                document.getElementById('gameTimer').textContent = timeRemaining;
+
+                if (timeRemaining <= 0) {
+                    // 시간 초과 - 게임 오버
+                    clearInterval(gameTimer);
+                    stopGame();
+                }
+            }, 1000);
+        }
+
+        // 음높이 매칭 확인 (analyzeAudio에서 호출)
+        function checkPitchMatch(pitch) {
+            if (!gameActive || !currentTarget || !pitch) {
+                matchStartTime = null;  // 음이 없으면 타이머 리셋
+                return;
+            }
+
+            const targetFreq = currentTarget.frequency;
+            const tolerance = currentTarget.tolerance;
+
+            if (Math.abs(pitch - targetFreq) <= tolerance) {
+                // 음이 맞으면 타이머 시작 또는 유지
+                if (matchStartTime === null) {
+                    matchStartTime = Date.now();
+                }
+
+                // 0.5초 이상 지속되었는지 확인
+                const matchDuration = Date.now() - matchStartTime;
+                if (matchDuration >= MATCH_DURATION) {
+                    // 정답!
+                    gameScore++;
+                    document.getElementById('gameScore').textContent = gameScore;
+
+                    // 타이머 중지
+                    if (gameTimer) {
+                        clearInterval(gameTimer);
+                        gameTimer = null;
+                    }
+
+                    // 성공 효과
+                    document.getElementById('targetNote').textContent = `✓ 정답! "${currentTarget.name}"`;
+                    document.getElementById('targetNote').style.background = 'rgba(72, 187, 120, 0.5)';
+
+                    // 매칭 타이머 리셋
+                    matchStartTime = null;
+
+                    // 0.5초 후 다음 라운드
+                    setTimeout(() => {
+                        document.getElementById('targetNote').style.background = 'rgba(255, 255, 255, 0.2)';
+                        nextRound();
+                    }, 500);
+                }
+            } else {
+                // 음이 안 맞으면 타이머 리셋
+                matchStartTime = null;
+            }
+        }
+
+        // provideAudioFeedback 함수 수정 - 게임 중일 때 음높이 체크 추가
+        const originalProvideAudioFeedback = provideAudioFeedback;
+        provideAudioFeedback = function(pitch, volume) {
+            originalProvideAudioFeedback(pitch, volume);
+
+            // 게임이 활성화되어 있으면 음높이 매칭 확인
+            if (gameActive && pitch) {
+                checkPitchMatch(pitch);
+            }
+        };
     </script>
 </body>
 </html>
