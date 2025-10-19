@@ -16,6 +16,7 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
+            padding-bottom: 80px; /* 하단 메뉴바 공간 확보 */
         }
 
         .container {
@@ -54,10 +55,13 @@
         #videoContainer {
             position: relative;
             width: 100%;
+            max-width: 800px;
+            max-height: 550px;
             aspect-ratio: 4/3;
             background: #000;
             border-radius: 10px;
             overflow: hidden;
+            margin: 0 auto;
         }
 
         #webcam {
@@ -77,7 +81,8 @@
         .controls {
             display: flex;
             gap: 10px;
-            margin-top: 15px;
+            margin: 15px auto 0 auto;
+            max-width: 800px;
         }
 
         button {
@@ -135,7 +140,8 @@
         }
 
         .feedback-section {
-            margin-top: 20px;
+            margin: 20px auto 0 auto;
+            max-width: 800px;
         }
 
         .feedback-item {
@@ -174,10 +180,12 @@
 
         #audioVisualization {
             width: 100%;
+            max-width: 800px;
             height: 150px;
             background: #000;
             border-radius: 10px;
-            margin-top: 15px;
+            margin: 15px auto 0 auto;
+            display: block;
         }
 
         .status-indicator {
@@ -307,7 +315,8 @@
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
             border-radius: 10px;
-            margin-top: 15px;
+            margin: 15px auto 0 auto;
+            max-width: 800px;
         }
 
         .loading {
@@ -485,15 +494,197 @@
             color: white;
             font-weight: bold;
         }
+
+        /* 탭 관련 스타일 */
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        /* 하단 고정 메뉴바 */
+        .bottom-nav {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            box-shadow: 0 -2px 10px rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: space-around;
+            padding: 10px 0;
+            z-index: 1000;
+        }
+
+        .nav-item {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border: none;
+            background: none;
+            color: #718096;
+        }
+
+        .nav-item:hover {
+            background: #f7fafc;
+        }
+
+        .nav-item.active {
+            color: #667eea;
+        }
+
+        .nav-icon {
+            font-size: 24px;
+            margin-bottom: 4px;
+        }
+
+        .nav-label {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* 안내 메시지 스타일 */
+        .guide-message {
+            background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin: 20px auto 0 auto;
+            max-width: 800px;
+            line-height: 1.8;
+        }
+
+        .guide-message p {
+            margin: 8px 0;
+            font-size: 0.95rem;
+        }
+
+        .guide-message strong {
+            font-weight: 700;
+            font-size: 1.05rem;
+        }
+
+        /* 모바일 최적화 */
+        @media (max-width: 768px) {
+            h1 {
+                font-size: 1.5rem;
+                margin-bottom: 20px;
+            }
+
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .card {
+                padding: 15px;
+            }
+
+            .card h2 {
+                font-size: 1.2rem;
+            }
+
+            body {
+                padding: 10px;
+                padding-bottom: 70px;
+            }
+
+            .nav-icon {
+                font-size: 20px;
+            }
+
+            .nav-label {
+                font-size: 11px;
+            }
+
+            .step-card {
+                padding: 15px;
+            }
+
+            .step-number {
+                width: 40px;
+                height: 40px;
+                font-size: 1.2rem;
+                margin-right: 10px;
+            }
+
+            .step-title {
+                font-size: 1.1rem;
+            }
+
+            .step-description {
+                font-size: 0.9rem;
+            }
+
+            .difficulty-buttons {
+                flex-direction: column;
+                gap: 10px;
+            }
+
+            .difficulty-btn {
+                width: 100%;
+            }
+
+            button {
+                font-size: 0.9rem;
+                padding: 10px 16px;
+            }
+
+            .target-note {
+                font-size: 2rem;
+            }
+
+            .instruction-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media (max-width: 480px) {
+            h1 {
+                font-size: 1.2rem;
+            }
+
+            .card h2 {
+                font-size: 1rem;
+            }
+
+            .pitch-display {
+                font-size: 1.5rem;
+                padding: 15px;
+            }
+
+            .target-note {
+                font-size: 1.5rem;
+                padding: 15px;
+            }
+
+            .step-number {
+                width: 35px;
+                height: 35px;
+                font-size: 1rem;
+            }
+
+            .step-title {
+                font-size: 1rem;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🎵 단소 연주 학습 도우미</h1>
 
-        <div class="main-grid">
-            <!-- 웹캠 섹션 -->
-            <div class="card">
+        <!-- 입술모양 탭 -->
+        <div class="tab-content active" id="tab-lips">
+            <div class="main-grid">
+                <!-- 웹캠 섹션 -->
+                <div class="card instructions">
                 <h2>
                     <span class="status-indicator" id="cameraStatus"></span>
                     실시간 입술 모양 분석
@@ -509,8 +700,23 @@
                 <div id="lipFeedback" class="feedback-section"></div>
             </div>
 
+            <!-- 안내 메시지 -->
+            <div class="card instructions">
+                <div class="guide-message">
+                    <p><strong>💡 소리가 안 나는 경우</strong></p>
+                    <p>입술의 모양과 취구를 카메라로 확인하기!</p>
+                    <p style="margin-top: 15px;"><strong>✅ 소리가 잘 나면?</strong></p>
+                    <p>아래 메뉴바의 "율명분석"으로 음계(태·황·무·임·중) 연습하기</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 율명분석 탭 -->
+    <div class="tab-content" id="tab-analysis">
+        <div class="main-grid">
             <!-- 오디오 분석 섹션 -->
-            <div class="card">
+            <div class="card instructions">
                 <h2>
                     <span class="status-indicator" id="micStatus"></span>
                     소리 분석
@@ -525,7 +731,12 @@
                 </div>
                 <div id="audioFeedback" class="feedback-section"></div>
             </div>
+        </div>
+    </div>
 
+    <!-- 율명게임 탭 -->
+    <div class="tab-content" id="tab-game">
+        <div class="main-grid">
             <!-- 음계 게임 -->
             <div class="card instructions">
                 <h2>🎮 음계 맞추기 게임</h2>
@@ -570,7 +781,12 @@
                     </div>
                 </div>
             </div>
+        </div>
+    </div>
 
+    <!-- 팁 탭 -->
+    <div class="tab-content" id="tab-tips">
+        <div class="main-grid">
             <!-- 단계별 학습 가이드 -->
             <div class="card instructions">
                 <h2>📚 단소 연주 4단계 학습 가이드</h2>
@@ -680,6 +896,26 @@
         </div>
     </div>
 
+    <!-- 하단 고정 메뉴바 -->
+    <nav class="bottom-nav">
+        <button class="nav-item active" data-tab="tab-lips">
+            <div class="nav-icon">👄</div>
+            <div class="nav-label">입술모양</div>
+        </button>
+        <button class="nav-item" data-tab="tab-analysis">
+            <div class="nav-icon">🎵</div>
+            <div class="nav-label">율명분석</div>
+        </button>
+        <button class="nav-item" data-tab="tab-game">
+            <div class="nav-icon">🎮</div>
+            <div class="nav-label">율명게임</div>
+        </button>
+        <button class="nav-item" data-tab="tab-tips">
+            <div class="nav-icon">💡</div>
+            <div class="nav-label">팁</div>
+        </button>
+    </nav>
+
     <script type="module">
         // MediaPipe 라이브러리 import
         import { FaceLandmarker, FilesetResolver } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.3';
@@ -731,6 +967,26 @@
             video = document.getElementById('webcam');
             canvas = document.getElementById('canvas');
             ctx = canvas.getContext('2d');
+
+            // 탭 전환 기능
+            const navItems = document.querySelectorAll('.nav-item');
+            const tabContents = document.querySelectorAll('.tab-content');
+
+            navItems.forEach(item => {
+                item.addEventListener('click', function() {
+                    const targetTab = this.getAttribute('data-tab');
+
+                    // 모든 nav-item에서 active 제거
+                    navItems.forEach(nav => nav.classList.remove('active'));
+                    // 클릭한 nav-item에 active 추가
+                    this.classList.add('active');
+
+                    // 모든 tab-content 숨기기
+                    tabContents.forEach(tab => tab.classList.remove('active'));
+                    // 선택한 tab-content 보이기
+                    document.getElementById(targetTab).classList.add('active');
+                });
+            });
 
             document.getElementById('startCamera').addEventListener('click', startCamera);
             document.getElementById('stopCamera').addEventListener('click', stopCamera);
