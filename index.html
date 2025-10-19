@@ -571,6 +571,57 @@
             font-size: 1.05rem;
         }
 
+        /* 단계 네비게이션 스타일 */
+        .step-navigation {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 12px;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .step-nav-btn {
+            padding: 12px 24px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .step-nav-btn:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .step-nav-btn:disabled {
+            border-color: #cbd5e0;
+            color: #cbd5e0;
+            cursor: not-allowed;
+            transform: none;
+            background: white;
+        }
+
+        .step-indicator {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .step-content {
+            display: block;
+        }
+
         /* 모바일 최적화 */
         @media (max-width: 768px) {
             h1 {
@@ -642,6 +693,19 @@
 
             .instruction-grid {
                 grid-template-columns: 1fr;
+            }
+
+            .step-navigation {
+                padding: 15px;
+            }
+
+            .step-nav-btn {
+                padding: 10px 16px;
+                font-size: 0.9rem;
+            }
+
+            .step-indicator {
+                font-size: 1rem;
             }
         }
 
@@ -787,11 +851,32 @@
     <!-- 팁 탭 -->
     <div class="tab-content" id="tab-tips">
         <div class="main-grid">
+            <!-- 참고 영상 -->
+            <div class="card instructions">
+                <h2>🎬 참고 영상</h2>
+                <div class="video-links">
+                    <div class="video-link-card">
+                        <a href="https://www.youtube.com/watch?v=4U_cOC6f66A" target="_blank">
+                            <h3>단소 연주법 기초</h3>
+                            <p>단소의 올바른 자세와 소리 내는 방법을 배울 수 있습니다.</p>
+                            <span class="btn">▶ 영상 보기</span>
+                        </a>
+                    </div>
+                    <div class="video-link-card">
+                        <a href="https://www.youtube.com/watch?v=lvy6FA-PyC0" target="_blank">
+                            <h3>단소 연주 가이드</h3>
+                            <p>단소 연주의 세부 기법과 팁을 확인하세요.</p>
+                            <span class="btn">▶ 영상 보기</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+
             <!-- 단계별 학습 가이드 -->
             <div class="card instructions">
                 <h2>📚 단소 연주 4단계 학습 가이드</h2>
 
-                <div class="step-card">
+                <div class="step-card step-content" data-step="1">
                     <div class="step-header">
                         <div class="step-number">1</div>
                         <div class="step-title">입술 일자로 만들어 바람내기</div>
@@ -811,7 +896,7 @@
                     </div>
                 </div>
 
-                <div class="step-card">
+                <div class="step-card step-content" data-step="2" style="display: none;">
                     <div class="step-header">
                         <div class="step-number">2</div>
                         <div class="step-title">바람구멍 위치 확인하기</div>
@@ -831,7 +916,7 @@
                     </div>
                 </div>
 
-                <div class="step-card">
+                <div class="step-card step-content" data-step="3" style="display: none;">
                     <div class="step-header">
                         <div class="step-number">3</div>
                         <div class="step-title">단소 입술에 대기</div>
@@ -851,7 +936,7 @@
                     </div>
                 </div>
 
-                <div class="step-card">
+                <div class="step-card step-content" data-step="4" style="display: none;">
                     <div class="step-header">
                         <div class="step-number">4</div>
                         <div class="step-title">소리내보기</div>
@@ -871,26 +956,14 @@
                         </ul>
                     </div>
                 </div>
-            </div>
 
-            <!-- 참고 영상 -->
-            <div class="card instructions">
-                <h2>🎬 참고 영상</h2>
-                <div class="video-links">
-                    <div class="video-link-card">
-                        <a href="https://www.youtube.com/watch?v=4U_cOC6f66A" target="_blank">
-                            <h3>단소 연주법 기초</h3>
-                            <p>단소의 올바른 자세와 소리 내는 방법을 배울 수 있습니다.</p>
-                            <span class="btn">▶ 영상 보기</span>
-                        </a>
+                <!-- 단계 네비게이션 -->
+                <div class="step-navigation">
+                    <button class="step-nav-btn" id="prevStep" disabled>← 이전</button>
+                    <div class="step-indicator">
+                        <span id="currentStep">1</span> / 4
                     </div>
-                    <div class="video-link-card">
-                        <a href="https://www.youtube.com/watch?v=lvy6FA-PyC0" target="_blank">
-                            <h3>단소 연주 가이드</h3>
-                            <p>단소 연주의 세부 기법과 팁을 확인하세요.</p>
-                            <span class="btn">▶ 영상 보기</span>
-                        </a>
-                    </div>
+                    <button class="step-nav-btn" id="nextStep">다음 →</button>
                 </div>
             </div>
         </div>
@@ -1009,6 +1082,51 @@
 
             // 게임 카드의 마이크 켜기 버튼
             document.getElementById('gameMicBtn').addEventListener('click', startAudio);
+
+            // 단계 네비게이션 기능
+            let currentStepNumber = 1;
+            const totalSteps = 4;
+            const stepContents = document.querySelectorAll('.step-content');
+            const prevStepBtn = document.getElementById('prevStep');
+            const nextStepBtn = document.getElementById('nextStep');
+            const currentStepIndicator = document.getElementById('currentStep');
+
+            function updateStepDisplay() {
+                // 모든 단계 숨기기
+                stepContents.forEach(step => {
+                    step.style.display = 'none';
+                });
+
+                // 현재 단계만 보이기
+                const currentStep = document.querySelector(`.step-content[data-step="${currentStepNumber}"]`);
+                if (currentStep) {
+                    currentStep.style.display = 'block';
+                }
+
+                // 버튼 상태 업데이트
+                prevStepBtn.disabled = currentStepNumber === 1;
+                nextStepBtn.disabled = currentStepNumber === totalSteps;
+
+                // 단계 표시 업데이트
+                currentStepIndicator.textContent = currentStepNumber;
+            }
+
+            prevStepBtn.addEventListener('click', () => {
+                if (currentStepNumber > 1) {
+                    currentStepNumber--;
+                    updateStepDisplay();
+                }
+            });
+
+            nextStepBtn.addEventListener('click', () => {
+                if (currentStepNumber < totalSteps) {
+                    currentStepNumber++;
+                    updateStepDisplay();
+                }
+            });
+
+            // 초기 단계 표시
+            updateStepDisplay();
 
             // MediaPipe 로드 확인
             console.log('MediaPipe 라이브러리 로드 완료!', FaceLandmarker, FilesetResolver);
